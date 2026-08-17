@@ -22,7 +22,9 @@ function canSeeNavigationItem(
 export function AppShell() {
   const auth = useAuth()
   const { isStaff, profile, roles, user } = auth
-  const navigationRoles: NavigationRoleCode[] = isStaff ? [...roles, 'staff'] : roles
+  const navigationRoles: NavigationRoleCode[] = isStaff
+    ? [...roles.filter((role) => role !== 'applicant'), 'staff']
+    : roles
   const visibleItems = navigationItems.filter((item) =>
     canSeeNavigationItem(item.roles, navigationRoles),
   )

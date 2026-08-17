@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { ApplicantRoute } from './features/auth/ApplicantRoute'
 import { RequireAuth } from './features/auth/RequireAuth'
 import { StaffRoute } from './features/auth/StaffRoute'
 import { AppShell } from './layouts/AppShell'
@@ -23,10 +24,12 @@ function App() {
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/applicant" replace />} />
-          <Route path="applicant" element={<ApplicantDashboardPage />} />
-          <Route path="applications/new" element={<NewApplicationPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="profile" element={<ProfilePage />} />
+          <Route element={<ApplicantRoute />}>
+            <Route path="applicant" element={<ApplicantDashboardPage />} />
+            <Route path="applications/new" element={<NewApplicationPage />} />
+            <Route path="documents" element={<DocumentsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+          </Route>
           <Route element={<StaffRoute />}>
             <Route path="staff" element={<StaffDashboardPage />} />
             <Route path="staff/applications" element={<StaffApplicationsPage />} />
