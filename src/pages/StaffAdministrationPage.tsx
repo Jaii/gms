@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check, ShieldCheck, UsersRound } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react'
 import { clsx } from 'clsx'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { MetricCard } from '../components/ui/MetricCard'
-import { TextField } from '../components/ui/TextField'
 import {
   fetchAdminUserDirectory,
   manageableRoleCodes,
@@ -15,7 +22,7 @@ import { useAuth } from '../features/auth/useAuth'
 import type { UserRoleCode } from '../types/domain'
 import { getErrorMessage } from '../utils/errorMessage'
 
-const pageSize = 25
+const pageSize = 10
 
 const roleLabels: Record<UserRoleCode, string> = {
   applicant: 'Applicant',
@@ -70,6 +77,29 @@ function getUserDisplayName(user: AdminUserDirectoryRow | null): string {
   return user.full_name ?? user.email ?? 'Unnamed user'
 }
 
+function getInitials(user: AdminUserDirectoryRow): string {
+  const name = getUserDisplayName(user)
+  const words = name.split(' ').filter(Boolean)
+
+  if (words.length >= 2) {
+    return `${words[0]?.charAt(0) ?? ''}${words[1]?.charAt(0) ?? ''}`.toUpperCase()
+  }
+
+  return name.slice(0, 2).toUpperCase()
+}
+
+function getPrimaryRole(roleCodes: string[]): UserRoleCode | null {
+  const roles = normalizeRoleCodes(roleCodes)
+
+  return (
+    roles.find((roleCode) => roleCode === 'administrator') ??
+    roles.find((roleCode) => roleCode === 'grants_officer') ??
+    roles.find((roleCode) => roleCode === 'committee_member') ??
+    roles.find((roleCode) => roleCode === 'applicant') ??
+    null
+  )
+}
+
 function roleTone(roleCode: UserRoleCode): 'blue' | 'green' | 'amber' | 'slate' {
   if (roleCode === 'administrator') {
     return 'green'
@@ -85,23 +115,29 @@ function roleTone(roleCode: UserRoleCode): 'blue' | 'green' | 'amber' | 'slate' 
 export function StaffAdministrationPage() {
   const { client } = useAuth()
   const [users, setUsers] = useState<AdminUserDirectoryRow[]>([])
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedUser, setSelectedUser] = useState<AdminUserDirectoryRow | null>(null)
   const [roleDrafts, setRoleDrafts] = useState<Record<string, UserRoleCode[]>>({})
   const [page, setPage] = useState(0)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
   const [totalCount, setTotalCount] = useState(0)
   const [savingUserId, setSavingUserId] = useState<string | null>(null)
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const selectedUser =
-    users.find((user) => user.profile_id === selectedUserId) ?? users[0] ?? null
+  const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1)
+  const tableRangeStart = totalCount === 0 ? 0 : page * pageSize + 1
+  const tableRangeEnd = Math.min((page + 1) * pageSize, totalCount)
   const selectedUserRoles = selectedUser
     ? (roleDrafts[selectedUser.profile_id] ?? normalizeRoleCodes(selectedUser.role_codes))
     : []
-  const totalPages = Math.max(Math.ceil(totalCount / pageSize), 1)
+  const selectedUserHasChanges = selectedUser
+    ? normalizeRoleCodes(selectedUser.role_codes).sort().join('|') !==
+      [...selectedUserRoles].sort().join('|')
+    : false
+
   const roleCounts = useMemo(
     () =>
       users.reduce(
@@ -123,10 +159,40 @@ export function StaffAdministrationPage() {
       ),
     [users],
   )
-  const selectedUserHasChanges = selectedUser
-    ? normalizeRoleCodes(selectedUser.role_codes).sort().join('|') !==
-      [...selectedUserRoles].sort().join('|')
-    : false
+
+  const visiblePageNumbers = useMemo(() => {
+    const visibleCount = Math.min(totalPages, 3)
+    const start = Math.max(0, Math.min(page - 1, totalPages - visibleCount))
+
+    return Array.from({ length: visibleCount }, (_, index) => start + index)
+  }, [page, totalPages])
+
+  const metrics: Array<{
+    label: string
+    value: number | string
+    supportingText: string
+  }> = [
+    {
+      label: 'Total users',
+      value: isLoading ? 'Loading' : totalCount,
+      supportingText: 'Registered profiles',
+    },
+    {
+      label: 'Applicants',
+      value: roleCounts.applicant,
+      supportingText: 'Grant applicants',
+    },
+    {
+      label: 'Review staff',
+      value: roleCounts.grants_officer + roleCounts.committee_member,
+      supportingText: 'Officer and committee',
+    },
+    {
+      label: 'Administrators',
+      value: roleCounts.administrator,
+      supportingText: 'System access',
+    },
+  ]
 
   const loadUsers = async () => {
     if (!client) {
@@ -152,13 +218,6 @@ export function StaffAdministrationPage() {
           ]),
         ),
       )
-      setSelectedUserId((currentUserId) => {
-        if (result.items.some((user) => user.profile_id === currentUserId)) {
-          return currentUserId
-        }
-
-        return result.items[0]?.profile_id ?? null
-      })
     } catch (caughtError) {
       setError(getErrorMessage(caughtError))
     } finally {
@@ -173,10 +232,19 @@ export function StaffAdministrationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client, page, search])
 
-  const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setPage(0)
     setSearch(searchDraft)
+  }
+
+  const handleOpenRoleEditor = (user: AdminUserDirectoryRow) => {
+    setSelectedUser(user)
+    setRoleDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [user.profile_id]:
+        currentDrafts[user.profile_id] ?? normalizeRoleCodes(user.role_codes),
+    }))
   }
 
   const handleRoleToggle = (userId: string, roleCode: UserRoleCode) => {
@@ -186,19 +254,19 @@ export function StaffAdministrationPage() {
     }))
   }
 
-  const handleSaveRoles = async (user: AdminUserDirectoryRow) => {
-    if (!client) {
+  const handleSaveRoles = async () => {
+    if (!client || !selectedUser) {
       return
     }
 
-    const nextRoles = roleDrafts[user.profile_id] ?? []
+    const nextRoles = roleDrafts[selectedUser.profile_id] ?? []
 
     if (nextRoles.length === 0) {
       setError('Select at least one role before saving.')
       return
     }
 
-    setSavingUserId(user.profile_id)
+    setSavingUserId(selectedUser.profile_id)
     setError(null)
     setMessage(null)
 
@@ -206,21 +274,21 @@ export function StaffAdministrationPage() {
       const updatedRoles = await updateAdminUserRoles({
         client,
         roleCodes: nextRoles,
-        userId: user.profile_id,
+        userId: selectedUser.profile_id,
       })
+      const updatedUser = { ...selectedUser, role_codes: updatedRoles }
 
-      setMessage(`Roles updated for ${user.email ?? user.full_name ?? 'user'}.`)
+      setMessage(`Roles updated for ${selectedUser.email ?? 'user'}.`)
       setUsers((currentUsers) =>
         currentUsers.map((currentUser) =>
-          currentUser.profile_id === user.profile_id
-            ? { ...currentUser, role_codes: updatedRoles }
-            : currentUser,
+          currentUser.profile_id === selectedUser.profile_id ? updatedUser : currentUser,
         ),
       )
       setRoleDrafts((currentDrafts) => ({
         ...currentDrafts,
-        [user.profile_id]: updatedRoles,
+        [selectedUser.profile_id]: updatedRoles,
       }))
+      setSelectedUser(updatedUser)
     } catch (caughtError) {
       setError(getErrorMessage(caughtError))
     } finally {
@@ -230,48 +298,40 @@ export function StaffAdministrationPage() {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <Badge tone="green">Administrator workspace</Badge>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-              Access administration
-            </h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Manage registered users and role access. Staff and administrator accounts
-              are kept separate from applicant grant workflows.
-            </p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold text-slate-950">Users List</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Manage registered users and role access across applicant, staff, and
+            administrator workspaces.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            Staff-only rule active
           </div>
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-            <p className="font-semibold">Staff-only rule active</p>
-            <p className="mt-1 text-emerald-800">
-              Selecting a staff role automatically removes applicant access.
-            </p>
-          </div>
+          <button
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800"
+            onClick={() => setShowAddUserModal(true)}
+            type="button"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Add User
+          </button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          label="Users"
-          value={isLoading ? 'Loading' : String(totalCount)}
-          supportingText="Registered profiles"
-        />
-        <MetricCard
-          label="Applicants"
-          value={String(roleCounts.applicant)}
-          supportingText="Current page"
-        />
-        <MetricCard
-          label="Review staff"
-          value={String(roleCounts.grants_officer + roleCounts.committee_member)}
-          supportingText="Officer and committee"
-        />
-        <MetricCard
-          label="Administrators"
-          value={String(roleCounts.administrator)}
-          supportingText="System access"
-        />
+        {metrics.map(({ label, value, supportingText }) => (
+          <div
+            className="rounded-md border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            key={label}
+          >
+            <p className="text-sm font-medium text-slate-600">{label}</p>
+            <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
+            <p className="mt-1 text-xs text-slate-500">{supportingText}</p>
+          </div>
+        ))}
       </div>
 
       {message ? (
@@ -285,130 +345,199 @@ export function StaffAdministrationPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-[26rem_1fr]">
-        <aside className="rounded-md border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
-              <UsersRound className="size-4 text-blue-700" aria-hidden="true" />
-              Users
-            </div>
-            <form className="mt-4 grid gap-3" onSubmit={handleSearch}>
-              <TextField
-                label="Search"
-                name="searchUsers"
-                onChange={(event) => setSearchDraft(event.target.value)}
-                placeholder="Name or email"
-                value={searchDraft}
-              />
-              <Button disabled={isLoading} type="submit">
-                Search
-              </Button>
-            </form>
-          </div>
+      <div className="rounded-md border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
+          <form className="relative max-w-sm" onSubmit={handleSearch}>
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <input
+              className="min-h-10 w-full rounded-full border border-slate-200 bg-white px-10 text-sm text-slate-950 shadow-sm placeholder:text-slate-400 focus:border-blue-600"
+              onChange={(event) => setSearchDraft(event.target.value)}
+              placeholder="Search..."
+              value={searchDraft}
+            />
+          </form>
+          <button
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800"
+            onClick={() => setShowAddUserModal(true)}
+            type="button"
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            Add User
+          </button>
+        </div>
 
-          <div className="max-h-[38rem] overflow-y-auto">
-            {users.length === 0 ? (
-              <p className="p-4 text-sm text-slate-600">
-                {isLoading ? 'Loading users...' : 'No users found.'}
-              </p>
-            ) : null}
-            {users.map((user) => {
-              const roles = normalizeRoleCodes(user.role_codes)
-              const isSelected = user.profile_id === selectedUser?.profile_id
+        <div className="overflow-x-auto">
+          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-slate-700">
+                <th className="w-12 border-b border-slate-200 px-4 py-3">
+                  <input
+                    aria-label="Select all users"
+                    className="size-4 rounded border-slate-300"
+                    type="checkbox"
+                  />
+                </th>
+                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                  Name
+                </th>
+                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                  Position
+                </th>
+                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                  Email
+                </th>
+                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                  Roles
+                </th>
+                <th className="w-36 border-b border-slate-200 px-4 py-3 font-semibold">
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-slate-600" colSpan={6}>
+                    {isLoading ? 'Loading users...' : 'No users found.'}
+                  </td>
+                </tr>
+              ) : null}
+              {users.map((user) => {
+                const roles = normalizeRoleCodes(user.role_codes)
+                const primaryRole = getPrimaryRole(user.role_codes)
 
-              return (
-                <button
-                  className={clsx(
-                    'grid w-full gap-2 border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0',
-                    isSelected ? 'bg-blue-50' : 'bg-white hover:bg-slate-50',
-                  )}
-                  key={user.profile_id}
-                  onClick={() => setSelectedUserId(user.profile_id)}
-                  type="button"
-                >
-                  <span className="font-semibold text-slate-950">
-                    {getUserDisplayName(user)}
-                  </span>
-                  <span className="text-sm text-slate-500">{user.email}</span>
-                  <span className="flex flex-wrap gap-1">
-                    {roles.length === 0 ? <Badge>No role</Badge> : null}
-                    {roles.map((roleCode) => (
-                      <Badge
-                        key={`${user.profile_id}-${roleCode}`}
-                        tone={roleTone(roleCode)}
-                      >
-                        {roleLabels[roleCode]}
-                      </Badge>
-                    ))}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+                return (
+                  <tr className="border-b border-slate-100" key={user.profile_id}>
+                    <td className="border-b border-slate-100 px-4 py-3">
+                      <input
+                        aria-label={`Select ${getUserDisplayName(user)}`}
+                        className="size-4 rounded border-slate-300"
+                        type="checkbox"
+                      />
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
+                          {getInitials(user)}
+                        </div>
+                        <span className="font-medium text-slate-950">
+                          {getUserDisplayName(user)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3 text-slate-700">
+                      {primaryRole ? roleLabels[primaryRole] : 'Unassigned'}
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3 text-slate-700">
+                      {user.email ?? 'No email'}
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {roles.length === 0 ? <Badge>No role</Badge> : null}
+                        {roles.map((roleCode) => (
+                          <Badge
+                            key={`${user.profile_id}-${roleCode}`}
+                            tone={roleTone(roleCode)}
+                          >
+                            {roleLabels[roleCode]}
+                          </Badge>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="border-b border-slate-100 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          aria-label={`Edit roles for ${getUserDisplayName(user)}`}
+                          className="text-teal-700 transition hover:text-teal-900"
+                          onClick={() => handleOpenRoleEditor(user)}
+                          type="button"
+                        >
+                          <Pencil className="size-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          aria-label="More actions"
+                          className="text-slate-500 transition hover:text-slate-800"
+                          type="button"
+                        >
+                          <MoreVertical className="size-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-slate-200 p-4 text-sm text-slate-600">
-            <span>
-              Page {page + 1} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                disabled={isLoading || page === 0}
-                onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 0))}
-                variant="secondary"
+        <div className="flex flex-col gap-3 px-4 py-4 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            Showing {tableRangeStart} to {tableRangeEnd} of {totalCount} entries
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              aria-label="Previous page"
+              className="min-h-9 px-3"
+              disabled={isLoading || page === 0}
+              onClick={() => setPage((currentPage) => Math.max(currentPage - 1, 0))}
+              variant="secondary"
+            >
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            </Button>
+            {visiblePageNumbers.map((index) => (
+              <button
+                className={clsx(
+                  'inline-flex min-h-9 items-center justify-center rounded-md border px-3 text-sm font-semibold transition',
+                  index === page &&
+                    'border-teal-700 bg-teal-700 text-white hover:bg-teal-800',
+                  index !== page &&
+                    'border-slate-300 bg-white text-slate-800 hover:bg-slate-50',
+                )}
+                key={index}
+                onClick={() => setPage(index)}
+                type="button"
               >
-                Previous
-              </Button>
-              <Button
-                disabled={isLoading || page + 1 >= totalPages}
-                onClick={() => setPage((currentPage) => currentPage + 1)}
-                variant="secondary"
-              >
-                Next
-              </Button>
-            </div>
+                {index + 1}
+              </button>
+            ))}
+            <Button
+              aria-label="Next page"
+              className="min-h-9 px-3"
+              disabled={isLoading || page + 1 >= totalPages}
+              onClick={() => setPage((currentPage) => currentPage + 1)}
+              variant="secondary"
+            >
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </Button>
           </div>
-        </aside>
+        </div>
+      </div>
 
-        <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      {selectedUser ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-3xl rounded-md bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
               <div>
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <ShieldCheck className="size-4 text-blue-700" aria-hidden="true" />
-                  Role assignment
-                </div>
-                <h3 className="mt-2 text-xl font-semibold text-slate-950">
-                  {getUserDisplayName(selectedUser)}
-                </h3>
+                <h3 className="text-xl font-semibold text-slate-950">Edit User</h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {selectedUser?.email ?? 'Select a user from the list.'}
+                  {getUserDisplayName(selectedUser)} - {selectedUser.email}
                 </p>
               </div>
-              {selectedUser ? (
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  Created {new Date(selectedUser.created_at).toLocaleDateString()}
-                </div>
-              ) : null}
+              <button
+                aria-label="Close edit user"
+                className="text-slate-500 transition hover:text-slate-800"
+                onClick={() => setSelectedUser(null)}
+                type="button"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
             </div>
-          </div>
 
-          {selectedUser ? (
-            <div className="space-y-5 p-5">
-              <div>
-                <h4 className="text-sm font-semibold text-slate-950">Assigned roles</h4>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {selectedUserRoles.length === 0 ? (
-                    <Badge>No role selected</Badge>
-                  ) : null}
-                  {selectedUserRoles.map((roleCode) => (
-                    <Badge key={roleCode} tone={roleTone(roleCode)}>
-                      {roleLabels[roleCode]}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-3 2xl:grid-cols-2">
+            <div className="space-y-4 px-5 py-5">
+              <div className="grid gap-3 md:grid-cols-2">
                 {manageableRoleCodes.map((roleCode) => {
                   const checked = selectedUserRoles.includes(roleCode)
 
@@ -417,7 +546,7 @@ export function StaffAdministrationPage() {
                       className={clsx(
                         'min-h-24 rounded-md border p-4 text-left transition',
                         checked
-                          ? 'border-blue-300 bg-blue-50'
+                          ? 'border-teal-300 bg-teal-50'
                           : 'border-slate-200 bg-white hover:bg-slate-50',
                       )}
                       key={roleCode}
@@ -429,7 +558,7 @@ export function StaffAdministrationPage() {
                           className={clsx(
                             'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded border',
                             checked
-                              ? 'border-blue-700 bg-blue-700 text-white'
+                              ? 'border-teal-700 bg-teal-700 text-white'
                               : 'border-slate-300 bg-white',
                           )}
                         >
@@ -451,32 +580,79 @@ export function StaffAdministrationPage() {
                 })}
               </div>
 
-              <div className="rounded-md border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-900">
                 Applicant cannot be combined with grants officer, committee member, or
-                administrator. The system will keep those access paths separate.
+                administrator.
               </div>
+            </div>
 
-              <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-slate-600">
-                  {selectedUserHasChanges ? 'Unsaved role changes' : 'No pending changes'}
-                </p>
-                <Button
-                  disabled={
-                    savingUserId === selectedUser.profile_id || !selectedUserHasChanges
-                  }
-                  onClick={() => void handleSaveRoles(selectedUser)}
-                >
-                  {savingUserId === selectedUser.profile_id ? 'Saving...' : 'Save roles'}
-                </Button>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+              <Button onClick={() => setSelectedUser(null)} variant="secondary">
+                Close
+              </Button>
+              <Button
+                disabled={
+                  savingUserId === selectedUser.profile_id || !selectedUserHasChanges
+                }
+                onClick={() => void handleSaveRoles()}
+              >
+                {savingUserId === selectedUser.profile_id ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showAddUserModal ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-3xl rounded-md bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+              <h3 className="text-xl font-semibold text-slate-950">Add User</h3>
+              <button
+                aria-label="Close add user"
+                className="text-slate-500 transition hover:text-slate-800"
+                onClick={() => setShowAddUserModal(false)}
+                type="button"
+              >
+                <X className="size-5" aria-hidden="true" />
+              </button>
+            </div>
+            <div className="space-y-4 px-5 py-5">
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                <span>Name</span>
+                <input
+                  className="min-h-10 rounded-md border border-slate-300 px-3"
+                  placeholder="Enter Name"
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                <span>Email</span>
+                <input
+                  className="min-h-10 rounded-md border border-slate-300 px-3"
+                  placeholder="Enter Email"
+                />
+              </label>
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm leading-6 text-blue-900">
+                Browser admins cannot create Supabase Auth passwords directly. Register
+                the user first, then return here to assign roles. A secure invitation
+                workflow can be added in the next phase.
               </div>
             </div>
-          ) : (
-            <div className="p-5 text-sm text-slate-600">
-              Select a user to manage roles.
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4">
+              <Button onClick={() => setShowAddUserModal(false)} variant="secondary">
+                Close
+              </Button>
+              <button
+                className="inline-flex min-h-10 cursor-not-allowed items-center justify-center rounded-md bg-teal-700 px-4 text-sm font-semibold text-white opacity-60"
+                disabled
+                type="button"
+              >
+                Add
+              </button>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      ) : null}
     </section>
   )
 }
