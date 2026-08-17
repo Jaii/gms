@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Search,
+  Trash2,
   X,
 } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -346,8 +347,11 @@ export function StaffAdministrationPage() {
       ) : null}
 
       <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <form className="relative w-full sm:w-64" onSubmit={handleSearch}>
+        <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <form
+            className="relative w-full flex-none sm:w-[16rem]"
+            onSubmit={handleSearch}
+          >
             <Search
               className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
@@ -360,7 +364,7 @@ export function StaffAdministrationPage() {
             />
           </form>
           <button
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-teal-700 px-4 text-sm font-semibold text-white transition hover:bg-teal-800 sm:ml-auto"
             onClick={() => setShowAddUserModal(true)}
             type="button"
           >
@@ -373,34 +377,34 @@ export function StaffAdministrationPage() {
           <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
             <colgroup>
               <col className="w-14" />
-              <col className="w-[22%]" />
-              <col className="w-[18%]" />
-              <col className="w-[28%]" />
-              <col className="w-[20%]" />
-              <col className="w-32" />
+              <col className="w-[23%]" />
+              <col className="w-[21%]" />
+              <col className="w-[27%]" />
+              <col className="w-[15%]" />
+              <col className="w-40" />
             </colgroup>
             <thead>
-              <tr className="bg-slate-50 text-slate-700">
-                <th className="border-b border-slate-200 px-5 py-3">
+              <tr className="h-14 bg-slate-50 text-slate-700">
+                <th className="border-b border-slate-200 px-5 py-4">
                   <input
                     aria-label="Select all users"
                     className="size-4 rounded border-slate-300"
                     type="checkbox"
                   />
                 </th>
-                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-4 font-semibold">
                   Name
                 </th>
-                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-4 font-semibold">
                   Position
                 </th>
-                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-4 font-semibold">
                   Email
                 </th>
-                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-4 font-semibold">
                   Roles
                 </th>
-                <th className="border-b border-slate-200 px-5 py-3 text-right font-semibold">
+                <th className="border-b border-slate-200 px-5 py-4 text-right font-semibold">
                   Action
                 </th>
               </tr>
@@ -418,7 +422,7 @@ export function StaffAdministrationPage() {
                 const primaryRole = getPrimaryRole(user.role_codes)
 
                 return (
-                  <tr className="border-b border-slate-100" key={user.profile_id}>
+                  <tr className="h-16 border-b border-slate-100" key={user.profile_id}>
                     <td className="border-b border-slate-100 px-5 py-4">
                       <input
                         aria-label={`Select ${getUserDisplayName(user)}`}
@@ -468,8 +472,16 @@ export function StaffAdministrationPage() {
                           <Pencil className="size-4" aria-hidden="true" />
                         </button>
                         <button
+                          aria-label={`Delete ${getUserDisplayName(user)}`}
+                          className="text-red-500 transition hover:text-red-700"
+                          title="Delete user is not available yet"
+                          type="button"
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                        <button
                           aria-label="More actions"
-                          className="text-slate-500 transition hover:text-slate-800"
+                          className="text-teal-700 transition hover:text-teal-900"
                           type="button"
                         >
                           <MoreVertical className="size-4" aria-hidden="true" />
