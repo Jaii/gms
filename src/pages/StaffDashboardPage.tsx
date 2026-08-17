@@ -62,9 +62,7 @@ export function StaffDashboardPage() {
       <div className="flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
         <div>
           <Badge tone="green">Staff workspace</Badge>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-950">
-            Administrative dashboard
-          </h2>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-950">Staff dashboard</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Review submitted applications and move them through the grants officer
             workflow.

@@ -34,5 +34,10 @@ export const navigationItems: NavigationItem[] = [
     icon: ClipboardCheck,
     roles: ['staff'],
   },
-  { label: 'Administration', href: '/staff', icon: Settings, roles: ['staff'] },
+  {
+    label: 'Administration',
+    href: '/staff/administration',
+    icon: Settings,
+    roles: ['administrator'],
+  },
 ]

@@ -13,6 +13,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { SignInPage } from './pages/SignInPage'
 import { StaffApplicationDetailPage } from './pages/StaffApplicationDetailPage'
 import { StaffApplicationsPage } from './pages/StaffApplicationsPage'
+import { StaffAdministrationPage } from './pages/StaffAdministrationPage'
 import { StaffDashboardPage } from './pages/StaffDashboardPage'
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
           </Route>
           <Route element={<StaffRoute />}>
             <Route path="staff" element={<StaffDashboardPage />} />
+            <Route path="staff/administration" element={<StaffAdministrationPage />} />
             <Route path="staff/applications" element={<StaffApplicationsPage />} />
             <Route
               path="staff/applications/:applicationId"
