@@ -41,6 +41,14 @@ Run the app:
 npm run dev
 ```
 
+Authentication routes:
+
+- `/sign-in`
+- `/register`
+- `/profile`
+
+If `.env` is missing, the app will show a Supabase configuration notice and disable sign-in/register actions.
+
 Validate the project:
 
 ```sh
@@ -63,6 +71,8 @@ Seed data lives in `supabase/seed.sql` and includes:
 - representative eligibility rules
 
 Use the Supabase CLI or dashboard migration tooling to apply the migration and seed data. Do not commit real Supabase service-role credentials.
+
+Phase 2 adds an auth trigger that creates a `profiles` row and assigns the applicant role when a Supabase Auth user registers. Apply migrations before testing registration.
 
 ## Deployment Overview
 

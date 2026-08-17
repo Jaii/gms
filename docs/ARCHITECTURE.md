@@ -27,6 +27,15 @@ Supabase Auth will own identity. Public profile records map Supabase users into 
 
 Authorization must be enforced in the database through Row Level Security and supporting server APIs. React may hide navigation items for usability, but it is not an authorization boundary.
 
+Phase 2 adds:
+
+- applicant registration and sign-in screens
+- a session-aware `AuthProvider`
+- protected routes
+- a database trigger that creates `profiles` records for new Auth users
+- default applicant role assignment
+- a role-code RPC used by the frontend navigation
+
 ## Database
 
 PostgreSQL is the system of record for:

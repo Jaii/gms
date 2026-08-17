@@ -20,7 +20,7 @@ Status: complete in this repository foundation.
 
 ## Phase 2 - Authentication And Applicant Profile
 
-Recommended next.
+Status: in progress in the current branch.
 
 - Supabase Auth setup
 - sign in, sign out and session handling

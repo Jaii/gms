@@ -8,12 +8,13 @@ import {
   UserRound,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import type { NavigationRoleCode } from '../types/domain'
 
 export type NavigationItem = {
   label: string
   href: string
   icon: LucideIcon
-  roles: Array<'applicant' | 'staff'>
+  roles: NavigationRoleCode[]
 }
 
 export const navigationItems: NavigationItem[] = [

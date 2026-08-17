@@ -15,3 +15,5 @@ export type ApplicationStatusCode =
 
 export type UserRoleCode =
   'applicant' | 'grants_officer' | 'committee_member' | 'administrator'
+
+export type NavigationRoleCode = UserRoleCode | 'staff'

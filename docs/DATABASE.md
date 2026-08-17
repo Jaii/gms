@@ -8,6 +8,8 @@
 
 Initial roles are applicant, grants officer, committee member and administrator.
 
+New Supabase Auth users are handled by `handle_new_auth_user()`, which creates a matching `profiles` row and assigns the applicant role when the seed role exists.
+
 ## Geography And Applicants
 
 - `communities` stores Koiari, Kokoda-Biage, Kokoda-Kaina and future communities.

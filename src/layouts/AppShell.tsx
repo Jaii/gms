@@ -1,13 +1,30 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { clsx } from 'clsx'
-import { ShieldCheck } from 'lucide-react'
+import { LogOut, ShieldCheck } from 'lucide-react'
 import { navigationItems } from '../app/navigation'
+import { Button } from '../components/ui/Button'
+import { useAuth } from '../features/auth/useAuth'
+import type { NavigationRoleCode } from '../types/domain'
 
-const currentDevelopmentRoles = ['applicant', 'staff'] as const
+function canSeeNavigationItem(
+  requiredRoles: NavigationRoleCode[],
+  userRoles: NavigationRoleCode[],
+): boolean {
+  for (const role of requiredRoles) {
+    if (userRoles.includes(role)) {
+      return true
+    }
+  }
+
+  return false
+}
 
 export function AppShell() {
+  const auth = useAuth()
+  const { isStaff, profile, roles, user } = auth
+  const navigationRoles: NavigationRoleCode[] = isStaff ? [...roles, 'staff'] : roles
   const visibleItems = navigationItems.filter((item) =>
-    item.roles.some((role) => currentDevelopmentRoles.includes(role)),
+    canSeeNavigationItem(item.roles, navigationRoles),
   )
 
   return (
@@ -25,8 +42,25 @@ export function AppShell() {
               </h1>
             </div>
           </div>
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Phase 1 development foundation
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+              Phase 2 auth and profile
+            </div>
+            <div className="text-sm text-slate-600">
+              <span className="block font-medium text-slate-950">
+                {profile?.full_name ?? user?.email ?? 'Signed in'}
+              </span>
+              <span>{roles.length > 0 ? roles.join(', ') : 'No role assigned'}</span>
+            </div>
+            <Button
+              aria-label="Sign out"
+              className="gap-2"
+              onClick={() => void auth.signOut()}
+              variant="secondary"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              Sign out
+            </Button>
           </div>
         </div>
       </header>

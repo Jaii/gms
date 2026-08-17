@@ -1,9 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '../types/database'
 import { clientEnv, isSupabaseConfigured } from './env'
 
-let cachedClient: SupabaseClient | null = null
+export type GmsSupabaseClient = SupabaseClient<Database>
 
-export function getSupabaseClient(): SupabaseClient | null {
+let cachedClient: GmsSupabaseClient | null = null
+
+export function getSupabaseClient(): GmsSupabaseClient | null {
   if (!isSupabaseConfigured) {
     return null
   }
