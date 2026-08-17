@@ -112,8 +112,9 @@ insert into public.eligibility_rules (
   active,
   effective_from
 )
-select rule_code, gp.id, 2026, c.id, priority, description, tuition_support_percentage,
-       geographical_applicability, condition_data, true, date '2026-01-01'
+select rules.rule_code, gp.id, 2026, c.id, rules.priority, rules.description,
+       rules.tuition_support_percentage, rules.geographical_applicability,
+       rules.condition_data, true, date '2026-01-01'
 from public.grant_programs gp
 cross join lateral (
   values

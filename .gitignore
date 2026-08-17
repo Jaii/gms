@@ -19,6 +19,7 @@ dist-ssr
 *.key
 local-uploads/
 tmp-uploads/
+.supabase-db-url
 
 # Editor directories and files
 .vscode/*
