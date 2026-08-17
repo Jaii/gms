@@ -28,12 +28,16 @@ export type SavedDraftApplication = {
   studyDetails: ApplicationStudyRow | null
 }
 
-function moneyToInput(value: string | null): string {
-  return value ?? ''
+function valueToInput(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  return String(value)
 }
 
-function numberToInput(value: number | null): string {
-  return value === null ? '' : String(value)
+function numberToInput(value: number | string | null | undefined): string {
+  return valueToInput(value)
 }
 
 export function draftContextToForm(
@@ -55,8 +59,8 @@ export function draftContextToForm(
       proposedCourse: context.studyDetails?.proposed_course ?? '',
       durationMonths: numberToInput(context.studyDetails?.duration_months ?? null),
       yearOfStudy: numberToInput(context.studyDetails?.year_of_study ?? null),
-      totalCourseFee: moneyToInput(context.studyDetails?.total_course_fee ?? null),
-      tuitionFee: moneyToInput(context.studyDetails?.tuition_fee ?? null),
+      totalCourseFee: valueToInput(context.studyDetails?.total_course_fee),
+      tuitionFee: valueToInput(context.studyDetails?.tuition_fee),
       currency:
         context.studyDetails?.currency ?? context.grantProgram.base_currency ?? 'PGK',
       studentType: context.studyDetails?.student_type ?? 'new',
