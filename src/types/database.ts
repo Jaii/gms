@@ -160,6 +160,30 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['application_documents']['Insert']>
         Relationships: []
       }
+      application_status_history: {
+        Row: {
+          id: string
+          application_id: string
+          previous_status_id: string | null
+          new_status_id: string
+          changed_by: string | null
+          reason: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          previous_status_id?: string | null
+          new_status_id: string
+          changed_by?: string | null
+          reason?: string | null
+          created_at?: string
+        }
+        Update: Partial<
+          Database['public']['Tables']['application_status_history']['Insert']
+        >
+        Relationships: []
+      }
       applications: {
         Row: {
           id: string
@@ -348,6 +372,13 @@ export type Database = {
       current_user_role_codes: {
         Args: Record<string, never>
         Returns: string[]
+      }
+      submit_application: {
+        Args: {
+          application_id_input: string
+          declaration_text_input: string
+        }
+        Returns: Database['public']['Tables']['applications']['Row']
       }
     }
     Enums: Record<string, never>

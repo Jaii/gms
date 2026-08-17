@@ -1,8 +1,50 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { MetricCard } from '../components/ui/MetricCard'
+import {
+  fetchDraftApplicationContext,
+  type DraftApplicationContext,
+} from '../features/applications/applicationDraftService'
+import { useAuth } from '../features/auth/useAuth'
+import { getErrorMessage } from '../utils/errorMessage'
+
+function formatStatus(context: DraftApplicationContext | null): string {
+  if (!context?.application) {
+    return 'Not started'
+  }
+
+  return context.application.submitted_at ? 'Submitted' : 'Draft'
+}
 
 export function ApplicantDashboardPage() {
+  const { client, user } = useAuth()
+  const [context, setContext] = useState<DraftApplicationContext | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!client || !user) {
+      return
+    }
+
+    const loadDashboard = async () => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        setContext(await fetchDraftApplicationContext(client, user.id))
+      } catch (caughtError) {
+        setError(getErrorMessage(caughtError))
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void loadDashboard()
+  }, [client, user])
+
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-4 rounded-md border border-slate-200 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
@@ -10,48 +52,53 @@ export function ApplicantDashboardPage() {
           <Badge tone="blue">Applicant workspace</Badge>
           <h2 className="mt-3 text-2xl font-semibold text-slate-950">My applications</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            This Phase 1 dashboard establishes the shell for applicant registration, draft
-            applications, document tracking, and status history.
+            Track your current application, documents, reference number and latest status.
           </p>
         </div>
-        <Button>Start application</Button>
+        <Link to="/applications/new">
+          <Button>
+            {context?.application ? 'Open application' : 'Start application'}
+          </Button>
+        </Link>
       </div>
+
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Current application"
-          value="Draft"
-          supportingText="Development data"
+          value={isLoading ? 'Loading' : formatStatus(context)}
+          supportingText={context?.grantProgram.name ?? 'TTFSP 2026'}
         />
         <MetricCard
           label="Reference number"
-          value="Pending"
+          value={context?.application?.application_number ?? 'Pending'}
           supportingText="Assigned on submit"
         />
         <MetricCard
           label="Documents"
-          value="0 / 0"
-          supportingText="Requirements from program config"
+          value="Checklist"
+          supportingText="Open Documents to review"
         />
         <MetricCard
           label="Latest activity"
-          value="None"
-          supportingText="Audit trail pending auth"
+          value={context?.application?.submitted_at ? 'Submitted' : 'Draft saved'}
+          supportingText={
+            context?.application?.submitted_at ?? context?.application?.updated_at
+          }
         />
       </div>
 
       <div className="rounded-md border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-950">
-          Application flow prepared
-        </h3>
+        <h3 className="text-lg font-semibold text-slate-950">Application flow</h3>
         <ol className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-3">
           {[
-            'Personal and contact details',
-            'Education history and current study',
-            'Community eligibility and documents',
-            'Additional information',
-            'Review and declaration',
-            'Submission with status history',
+            'Profile completed',
+            'Draft application saved',
+            'Required documents prepared',
+            'Declaration accepted',
+            'Application submitted',
+            'Status history recorded',
           ].map((step) => (
             <li
               className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2"

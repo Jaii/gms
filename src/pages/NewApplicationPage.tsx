@@ -19,6 +19,11 @@ import {
   saveDraftApplication,
   type DraftApplicationContext,
 } from '../features/applications/applicationDraftService'
+import {
+  getSubmissionReadiness,
+  submitApplication,
+  type SubmissionReadiness,
+} from '../features/applications/applicationSubmissionService'
 import { useAuth } from '../features/auth/useAuth'
 import { getErrorMessage } from '../utils/errorMessage'
 
@@ -82,8 +87,12 @@ export function NewApplicationPage() {
   const [activeStep, setActiveStep] = useState<WizardStep>('Applicant')
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [submissionReadiness, setSubmissionReadiness] =
+    useState<SubmissionReadiness | null>(null)
+  const [declarationAccepted, setDeclarationAccepted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const activeStepIndex = wizardSteps.indexOf(activeStep)
   const completionItems = useMemo(() => getCompletionItems(form), [form])
@@ -102,6 +111,11 @@ export function NewApplicationPage() {
         const loadedContext = await fetchDraftApplicationContext(client, user.id)
         setContext(loadedContext)
         setForm(draftContextToForm(loadedContext))
+        if (loadedContext.application) {
+          setSubmissionReadiness(
+            await getSubmissionReadiness(client, user.id, loadedContext),
+          )
+        }
       } catch (caughtError) {
         setError(getErrorMessage(caughtError))
       } finally {
@@ -176,11 +190,64 @@ export function NewApplicationPage() {
       const refreshedContext = await fetchDraftApplicationContext(client, user.id)
       setContext(refreshedContext)
       setForm(draftContextToForm(refreshedContext))
+      setSubmissionReadiness(
+        await getSubmissionReadiness(client, user.id, refreshedContext),
+      )
       setMessage('Draft application saved.')
     } catch (caughtError) {
       setError(getErrorMessage(caughtError))
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSubmitApplication = async () => {
+    setError(null)
+    setMessage(null)
+
+    if (!client || !user || !context?.application) {
+      setError('Save your draft application before submitting.')
+      return
+    }
+
+    if (!declarationAccepted) {
+      setError('Accept the declaration before submitting.')
+      return
+    }
+
+    const readiness =
+      submissionReadiness ?? (await getSubmissionReadiness(client, user.id, context))
+
+    if (!readiness.canSubmit) {
+      setSubmissionReadiness(readiness)
+      setError('Complete all submission requirements before submitting.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const submittedApplication = await submitApplication({
+        applicationId: context.application.id,
+        client,
+        declarationText:
+          'Applicant declared that the submitted application information is true and complete.',
+      })
+      const refreshedContext = await fetchDraftApplicationContext(client, user.id)
+      setContext({
+        ...refreshedContext,
+        application: submittedApplication,
+      })
+      setSubmissionReadiness(readiness)
+      setMessage(
+        `Application submitted. Reference: ${
+          submittedApplication.application_number ?? 'pending'
+        }.`,
+      )
+    } catch (caughtError) {
+      setError(getErrorMessage(caughtError))
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -231,9 +298,9 @@ export function NewApplicationPage() {
               {context.grantProgram.name}
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Save a draft application for the {context.grantProgram.program_year}{' '}
-              program. Submission, declaration and document uploads will come after the
-              draft flow is stable.
+              Save and submit an application for the {context.grantProgram.program_year}{' '}
+              program. Submitted applications receive a reference number and status
+              history entry.
             </p>
           </div>
           <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
@@ -241,7 +308,9 @@ export function NewApplicationPage() {
               {context.application?.application_number ?? 'Draft reference pending'}
             </p>
             <p className="mt-1 text-slate-600">
-              {completionCount} of {completionItems.length} key items complete
+              {context.application?.submitted_at
+                ? 'Submitted'
+                : `${completionCount} of ${completionItems.length} key items complete`}
             </p>
           </div>
         </div>
@@ -609,8 +678,8 @@ export function NewApplicationPage() {
             <div>
               <h3 className="text-lg font-semibold text-slate-950">Review draft</h3>
               <p className="mt-1 text-sm text-slate-600">
-                Review the draft information before saving. Submission will be added in
-                the next phase.
+                Review the draft information, confirm the declaration, and submit when all
+                requirements are complete.
               </p>
             </div>
             <dl className="grid gap-4 md:grid-cols-2">
@@ -646,6 +715,54 @@ export function NewApplicationPage() {
                 </dd>
               </div>
             </dl>
+            <div className="rounded-md border border-slate-200 bg-white p-4">
+              <h4 className="font-semibold text-slate-950">Submission readiness</h4>
+              <div className="mt-3 grid gap-2">
+                {(submissionReadiness?.items ?? []).map((item) => (
+                  <div
+                    className="flex items-center gap-3 rounded-md border border-slate-200 bg-slate-50 p-3 text-sm"
+                    key={item.label}
+                  >
+                    <span
+                      className={clsx(
+                        'flex size-7 items-center justify-center rounded-full border',
+                        item.complete
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-amber-200 bg-amber-50 text-amber-800',
+                      )}
+                    >
+                      <Check className="size-4" aria-hidden="true" />
+                    </span>
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+              <label className="mt-4 flex items-start gap-3 text-sm text-slate-700">
+                <input
+                  checked={declarationAccepted}
+                  className="mt-1 size-4"
+                  disabled={Boolean(context.application?.submitted_at)}
+                  onChange={(event) => setDeclarationAccepted(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  I declare that the information provided in this application is true and
+                  complete to the best of my knowledge.
+                </span>
+              </label>
+              <Button
+                className="mt-4"
+                disabled={
+                  isSubmitting ||
+                  Boolean(context.application?.submitted_at) ||
+                  !declarationAccepted ||
+                  !submissionReadiness?.canSubmit
+                }
+                onClick={() => void handleSubmitApplication()}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit application'}
+              </Button>
+            </div>
           </div>
         ) : null}
 
