@@ -373,6 +373,10 @@ export type Database = {
         Args: Record<string, never>
         Returns: string[]
       }
+      bootstrap_first_administrator: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
       submit_application: {
         Args: {
           application_id_input: string

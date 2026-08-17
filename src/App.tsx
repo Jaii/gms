@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { RequireAuth } from './features/auth/RequireAuth'
 import { StaffRoute } from './features/auth/StaffRoute'
 import { AppShell } from './layouts/AppShell'
+import { AdminRegisterPage } from './pages/AdminRegisterPage'
 import { ApplicantDashboardPage } from './pages/ApplicantDashboardPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { NewApplicationPage } from './pages/NewApplicationPage'
@@ -18,6 +19,7 @@ function App() {
     <Routes>
       <Route path="sign-in" element={<SignInPage />} />
       <Route path="register" element={<RegisterPage />} />
+      <Route path="admin/register" element={<AdminRegisterPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/applicant" replace />} />
