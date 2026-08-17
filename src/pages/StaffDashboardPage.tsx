@@ -1,38 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui/Badge'
 import { MetricCard } from '../components/ui/MetricCard'
 import {
-  fetchStaffApplicationQueue,
-  type StaffApplicationSummary,
+  createEmptyStaffDashboardCounts,
+  fetchStaffDashboardCounts,
+  type StaffDashboardCounts,
 } from '../features/staff/staffReviewService'
 import { useAuth } from '../features/auth/useAuth'
 import { getErrorMessage } from '../utils/errorMessage'
 
 export function StaffDashboardPage() {
   const { client } = useAuth()
-  const [applications, setApplications] = useState<StaffApplicationSummary[]>([])
+  const [counts, setCounts] = useState<StaffDashboardCounts>(
+    createEmptyStaffDashboardCounts(),
+  )
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-
-  const submittedCount = useMemo(
-    () => applications.filter((item) => item.status?.code === 'submitted').length,
-    [applications],
-  )
-  const initialReviewCount = useMemo(
-    () => applications.filter((item) => item.status?.code === 'initial_review').length,
-    [applications],
-  )
-  const documentVerificationCount = useMemo(
-    () =>
-      applications.filter((item) => item.status?.code === 'document_verification').length,
-    [applications],
-  )
-  const committeeReadyCount = useMemo(
-    () =>
-      applications.filter((item) => item.status?.code === 'ready_for_committee').length,
-    [applications],
-  )
 
   useEffect(() => {
     if (!client) {
@@ -44,7 +28,7 @@ export function StaffDashboardPage() {
       setError(null)
 
       try {
-        setApplications(await fetchStaffApplicationQueue(client))
+        setCounts(await fetchStaffDashboardCounts(client))
       } catch (caughtError) {
         setError(getErrorMessage(caughtError))
       } finally {
@@ -81,22 +65,22 @@ export function StaffDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="Submitted"
-          value={isLoading ? 'Loading' : String(submittedCount)}
+          value={isLoading ? 'Loading' : String(counts.submitted)}
           supportingText="Awaiting initial review"
         />
         <MetricCard
           label="Initial review"
-          value={String(initialReviewCount)}
+          value={String(counts.initial_review)}
           supportingText="Opened by staff"
         />
         <MetricCard
           label="Document verification"
-          value={String(documentVerificationCount)}
+          value={String(counts.document_verification)}
           supportingText="Document checks"
         />
         <MetricCard
           label="Ready for committee"
-          value={String(committeeReadyCount)}
+          value={String(counts.ready_for_committee)}
           supportingText="Prepared for next phase"
         />
       </div>

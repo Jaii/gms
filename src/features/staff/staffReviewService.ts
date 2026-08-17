@@ -8,6 +8,8 @@ type ApplicationStudyRow =
   Database['public']['Tables']['application_study_details']['Row']
 type ApplicationDocumentRow = Database['public']['Tables']['application_documents']['Row']
 type StatusHistoryRow = Database['public']['Tables']['application_status_history']['Row']
+type StaffReviewQueueRow =
+  Database['public']['Functions']['staff_review_queue']['Returns'][number]
 
 export type StaffApplicationSummary = {
   application: ApplicationRow
@@ -27,7 +29,7 @@ export type StaffApplicationDetail = StaffApplicationSummary & {
   >
 }
 
-const reviewStatusCodes = [
+export const reviewStatusCodes = [
   'submitted',
   'initial_review',
   'information_required',
@@ -35,6 +37,20 @@ const reviewStatusCodes = [
   'eligibility_review',
   'ready_for_committee',
 ] as const
+
+export type ReviewStatusCode = (typeof reviewStatusCodes)[number]
+export type StaffReviewStatusFilter = ReviewStatusCode | 'all'
+
+export type StaffDashboardCounts = Record<ReviewStatusCode, number>
+
+export type StaffApplicationQueueItem = StaffReviewQueueRow
+
+export type StaffApplicationQueueResult = {
+  items: StaffApplicationQueueItem[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
 
 export const staffTransitionOptions = [
   { code: 'initial_review', label: 'Move to Initial Review' },
@@ -48,89 +64,70 @@ function mapById<T extends { id: string }>(rows: T[]): Map<string, T> {
   return new Map(rows.map((row) => [row.id, row]))
 }
 
+export function createEmptyStaffDashboardCounts(): StaffDashboardCounts {
+  return {
+    submitted: 0,
+    initial_review: 0,
+    information_required: 0,
+    document_verification: 0,
+    eligibility_review: 0,
+    ready_for_committee: 0,
+  }
+}
+
+export async function fetchStaffDashboardCounts(
+  client: GmsSupabaseClient,
+): Promise<StaffDashboardCounts> {
+  const { data, error } = await client.rpc('staff_review_dashboard_counts')
+
+  if (error) {
+    throw error
+  }
+
+  const counts = createEmptyStaffDashboardCounts()
+
+  for (const row of data ?? []) {
+    if (reviewStatusCodes.includes(row.status_code as ReviewStatusCode)) {
+      counts[row.status_code as ReviewStatusCode] = Number(row.total_count)
+    }
+  }
+
+  return counts
+}
+
 export async function fetchStaffApplicationQueue(
   client: GmsSupabaseClient,
-): Promise<StaffApplicationSummary[]> {
-  const { data: statuses, error: statusesError } = await client
-    .from('application_statuses')
-    .select('*')
+  {
+    page = 0,
+    pageSize = 25,
+    search = '',
+    statusFilter = 'all',
+  }: {
+    page?: number
+    pageSize?: number
+    search?: string
+    statusFilter?: StaffReviewStatusFilter
+  } = {},
+): Promise<StaffApplicationQueueResult> {
+  const { data, error } = await client.rpc('staff_review_queue', {
+    limit_input: pageSize,
+    offset_input: page * pageSize,
+    search_input: search.trim() || null,
+    status_code_input: statusFilter === 'all' ? null : statusFilter,
+  })
 
-  if (statusesError) {
-    throw statusesError
+  if (error) {
+    throw error
   }
 
-  const statusById = mapById(statuses ?? [])
-  const reviewStatusIds = (statuses ?? [])
-    .filter((status) =>
-      reviewStatusCodes.includes(status.code as (typeof reviewStatusCodes)[number]),
-    )
-    .map((status) => status.id)
+  const items = data ?? []
 
-  if (reviewStatusIds.length === 0) {
-    return []
+  return {
+    items,
+    totalCount: items[0]?.total_count ?? 0,
+    page,
+    pageSize,
   }
-
-  const { data: applications, error: applicationsError } = await client
-    .from('applications')
-    .select('*')
-    .in('status_id', reviewStatusIds)
-    .order('submitted_at', { ascending: true })
-
-  if (applicationsError) {
-    throw applicationsError
-  }
-
-  const applicantIds = [...new Set((applications ?? []).map((app) => app.applicant_id))]
-  const applicationIds = [...new Set((applications ?? []).map((app) => app.id))]
-
-  const [
-    { data: applicants, error: applicantsError },
-    { data: studyDetails, error: studyError },
-    { data: documents, error: documentsError },
-  ] = await Promise.all([
-    applicantIds.length > 0
-      ? client.from('applicants').select('*').in('id', applicantIds)
-      : Promise.resolve({ data: [], error: null }),
-    applicationIds.length > 0
-      ? client
-          .from('application_study_details')
-          .select('*')
-          .in('application_id', applicationIds)
-      : Promise.resolve({ data: [], error: null }),
-    applicationIds.length > 0
-      ? client
-          .from('application_documents')
-          .select('*')
-          .in('application_id', applicationIds)
-      : Promise.resolve({ data: [], error: null }),
-  ])
-
-  if (applicantsError) {
-    throw applicantsError
-  }
-
-  if (studyError) {
-    throw studyError
-  }
-
-  if (documentsError) {
-    throw documentsError
-  }
-
-  const applicantById = mapById(applicants ?? [])
-  const studyByApplicationId = new Map(
-    (studyDetails ?? []).map((study) => [study.application_id, study]),
-  )
-
-  return (applications ?? []).map((application) => ({
-    application,
-    applicant: applicantById.get(application.applicant_id) ?? null,
-    status: statusById.get(application.status_id) ?? null,
-    studyDetails: studyByApplicationId.get(application.id) ?? null,
-    documentCount: (documents ?? []).filter(
-      (document) => document.application_id === application.id,
-    ).length,
-  }))
 }
 
 export async function fetchStaffApplicationDetail(

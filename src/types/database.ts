@@ -377,6 +377,35 @@ export type Database = {
         Args: Record<string, never>
         Returns: string[]
       }
+      staff_review_dashboard_counts: {
+        Args: Record<string, never>
+        Returns: Array<{
+          status_code: string
+          total_count: number
+        }>
+      }
+      staff_review_queue: {
+        Args: {
+          limit_input?: number
+          offset_input?: number
+          status_code_input?: string | null
+          search_input?: string | null
+        }
+        Returns: Array<{
+          application_id: string
+          application_number: string | null
+          submitted_at: string | null
+          updated_at: string
+          applicant_id: string
+          applicant_first_name: string
+          applicant_surname: string
+          status_code: string
+          status_name: string
+          proposed_course: string | null
+          document_count: number
+          total_count: number
+        }>
+      }
       submit_application: {
         Args: {
           application_id_input: string
