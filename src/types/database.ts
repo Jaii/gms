@@ -377,6 +377,28 @@ export type Database = {
         Args: Record<string, never>
         Returns: string[]
       }
+      admin_user_directory: {
+        Args: {
+          search_input?: string | null
+          limit_input?: number
+          offset_input?: number
+        }
+        Returns: Array<{
+          profile_id: string
+          email: string | null
+          full_name: string | null
+          role_codes: string[]
+          created_at: string
+          total_count: number
+        }>
+      }
+      admin_update_user_roles: {
+        Args: {
+          user_id_input: string
+          role_codes_input: string[]
+        }
+        Returns: string[]
+      }
       staff_review_dashboard_counts: {
         Args: Record<string, never>
         Returns: Array<{

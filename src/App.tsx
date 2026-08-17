@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { AdminRoute } from './features/auth/AdminRoute'
 import { ApplicantRoute } from './features/auth/ApplicantRoute'
 import { RequireAuth } from './features/auth/RequireAuth'
 import { StaffRoute } from './features/auth/StaffRoute'
@@ -33,7 +34,9 @@ function App() {
           </Route>
           <Route element={<StaffRoute />}>
             <Route path="staff" element={<StaffDashboardPage />} />
-            <Route path="staff/administration" element={<StaffAdministrationPage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="staff/administration" element={<StaffAdministrationPage />} />
+            </Route>
             <Route path="staff/applications" element={<StaffApplicationsPage />} />
             <Route
               path="staff/applications/:applicationId"
