@@ -108,6 +108,58 @@ export type Database = {
         >
         Relationships: []
       }
+      application_documents: {
+        Row: {
+          id: string
+          application_id: string
+          applicant_id: string
+          document_type_id: string
+          original_filename: string
+          mime_type: string
+          file_size_bytes: number
+          storage_provider: string
+          storage_object_key: string
+          status:
+            | 'missing'
+            | 'uploaded'
+            | 'under_review'
+            | 'verified'
+            | 'rejected'
+            | 'replacement_requested'
+          uploaded_by: string | null
+          verified_by: string | null
+          verified_at: string | null
+          rejection_reason: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          application_id: string
+          applicant_id: string
+          document_type_id: string
+          original_filename: string
+          mime_type: string
+          file_size_bytes: number
+          storage_provider?: string
+          storage_object_key: string
+          status?:
+            | 'missing'
+            | 'uploaded'
+            | 'under_review'
+            | 'verified'
+            | 'rejected'
+            | 'replacement_requested'
+          uploaded_by?: string | null
+          verified_by?: string | null
+          verified_at?: string | null
+          rejection_reason?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['application_documents']['Insert']>
+        Relationships: []
+      }
       applications: {
         Row: {
           id: string
@@ -188,6 +240,28 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['education_history']['Insert']>
         Relationships: []
       }
+      document_types: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['document_types']['Insert']>
+        Relationships: []
+      }
       grant_programs: {
         Row: {
           id: string
@@ -216,6 +290,34 @@ export type Database = {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['grant_programs']['Insert']>
+        Relationships: []
+      }
+      program_document_requirements: {
+        Row: {
+          id: string
+          grant_program_id: string
+          document_type_id: string
+          requirement_level: 'required' | 'optional' | 'conditional'
+          student_type: 'all' | 'new' | 'continuing'
+          condition_data: Json
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          grant_program_id: string
+          document_type_id: string
+          requirement_level: 'required' | 'optional' | 'conditional'
+          student_type?: 'all' | 'new' | 'continuing'
+          condition_data?: Json
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<
+          Database['public']['Tables']['program_document_requirements']['Insert']
+        >
         Relationships: []
       }
       profiles: {
