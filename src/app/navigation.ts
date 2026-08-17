@@ -28,6 +28,11 @@ export const navigationItems: NavigationItem[] = [
   { label: 'Documents', href: '/documents', icon: FolderOpen, roles: ['applicant'] },
   { label: 'Profile', href: '/profile', icon: UserRound, roles: ['applicant'] },
   { label: 'Staff Dashboard', href: '/staff', icon: LayoutDashboard, roles: ['staff'] },
-  { label: 'Review Queue', href: '/staff', icon: ClipboardCheck, roles: ['staff'] },
+  {
+    label: 'Review Queue',
+    href: '/staff/applications',
+    icon: ClipboardCheck,
+    roles: ['staff'],
+  },
   { label: 'Administration', href: '/staff', icon: Settings, roles: ['staff'] },
 ]

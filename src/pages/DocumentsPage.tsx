@@ -256,7 +256,7 @@ export function DocumentsPage() {
                             {latestDocument.original_filename}
                           </p>
                           <p className="mt-1">
-                            {formatFileSize(latestDocument.file_size_bytes)} ·{' '}
+                            {formatFileSize(latestDocument.file_size_bytes)} -{' '}
                             {latestDocument.mime_type}
                           </p>
                         </div>
@@ -284,7 +284,7 @@ export function DocumentsPage() {
                   </label>
                   {selectedFile ? (
                     <p className="mt-2 text-xs text-slate-600">
-                      {selectedFile.name} · {formatFileSize(selectedFile.size)}
+                      {selectedFile.name} - {formatFileSize(selectedFile.size)}
                     </p>
                   ) : null}
                   <Button

@@ -9,6 +9,8 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
 import { SignInPage } from './pages/SignInPage'
+import { StaffApplicationDetailPage } from './pages/StaffApplicationDetailPage'
+import { StaffApplicationsPage } from './pages/StaffApplicationsPage'
 import { StaffDashboardPage } from './pages/StaffDashboardPage'
 
 function App() {
@@ -25,6 +27,11 @@ function App() {
           <Route path="profile" element={<ProfilePage />} />
           <Route element={<StaffRoute />}>
             <Route path="staff" element={<StaffDashboardPage />} />
+            <Route path="staff/applications" element={<StaffApplicationsPage />} />
+            <Route
+              path="staff/applications/:applicationId"
+              element={<StaffApplicationDetailPage />}
+            />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Route>

@@ -380,6 +380,14 @@ export type Database = {
         }
         Returns: Database['public']['Tables']['applications']['Row']
       }
+      staff_update_application_status: {
+        Args: {
+          application_id_input: string
+          new_status_code_input: string
+          reason_input: string
+        }
+        Returns: Database['public']['Tables']['applications']['Row']
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
