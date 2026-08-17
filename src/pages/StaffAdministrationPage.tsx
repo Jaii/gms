@@ -285,7 +285,7 @@ export function StaffAdministrationPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-[24rem_1fr]">
+      <div className="grid gap-5 xl:grid-cols-[26rem_1fr]">
         <aside className="rounded-md border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 p-4">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
@@ -306,7 +306,7 @@ export function StaffAdministrationPage() {
             </form>
           </div>
 
-          <div className="max-h-[34rem] overflow-y-auto">
+          <div className="max-h-[38rem] overflow-y-auto">
             {users.length === 0 ? (
               <p className="p-4 text-sm text-slate-600">
                 {isLoading ? 'Loading users...' : 'No users found.'}
@@ -408,7 +408,7 @@ export function StaffAdministrationPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 lg:grid-cols-2">
+              <div className="grid gap-3 2xl:grid-cols-2">
                 {manageableRoleCodes.map((roleCode) => {
                   const checked = selectedUserRoles.includes(roleCode)
 
