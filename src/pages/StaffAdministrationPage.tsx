@@ -346,14 +346,14 @@ export function StaffAdministrationPage() {
       ) : null}
 
       <div className="rounded-md border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center lg:justify-between">
-          <form className="relative max-w-sm" onSubmit={handleSearch}>
+        <div className="flex flex-col gap-3 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
+          <form className="relative w-full sm:w-64" onSubmit={handleSearch}>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400"
               aria-hidden="true"
             />
             <input
-              className="min-h-10 w-full rounded-full border border-slate-200 bg-white px-10 text-sm text-slate-950 shadow-sm placeholder:text-slate-400 focus:border-blue-600"
+              className="block h-11 w-full rounded-full border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-950 shadow-sm outline-none placeholder:text-slate-400 focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
               onChange={(event) => setSearchDraft(event.target.value)}
               placeholder="Search..."
               value={searchDraft}
@@ -370,29 +370,37 @@ export function StaffAdministrationPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
+          <table className="w-full table-fixed border-separate border-spacing-0 text-left text-sm">
+            <colgroup>
+              <col className="w-14" />
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+              <col className="w-[28%]" />
+              <col className="w-[20%]" />
+              <col className="w-32" />
+            </colgroup>
             <thead>
               <tr className="bg-slate-50 text-slate-700">
-                <th className="w-12 border-b border-slate-200 px-4 py-3">
+                <th className="border-b border-slate-200 px-5 py-3">
                   <input
                     aria-label="Select all users"
                     className="size-4 rounded border-slate-300"
                     type="checkbox"
                   />
                 </th>
-                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
                   Name
                 </th>
-                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
                   Position
                 </th>
-                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
                   Email
                 </th>
-                <th className="border-b border-slate-200 px-4 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-3 font-semibold">
                   Roles
                 </th>
-                <th className="w-36 border-b border-slate-200 px-4 py-3 font-semibold">
+                <th className="border-b border-slate-200 px-5 py-3 text-right font-semibold">
                   Action
                 </th>
               </tr>
@@ -411,30 +419,32 @@ export function StaffAdministrationPage() {
 
                 return (
                   <tr className="border-b border-slate-100" key={user.profile_id}>
-                    <td className="border-b border-slate-100 px-4 py-3">
+                    <td className="border-b border-slate-100 px-5 py-4">
                       <input
                         aria-label={`Select ${getUserDisplayName(user)}`}
                         className="size-4 rounded border-slate-300"
                         type="checkbox"
                       />
                     </td>
-                    <td className="border-b border-slate-100 px-4 py-3">
+                    <td className="border-b border-slate-100 px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
                           {getInitials(user)}
                         </div>
-                        <span className="font-medium text-slate-950">
+                        <span className="truncate font-medium text-slate-950">
                           {getUserDisplayName(user)}
                         </span>
                       </div>
                     </td>
-                    <td className="border-b border-slate-100 px-4 py-3 text-slate-700">
-                      {primaryRole ? roleLabels[primaryRole] : 'Unassigned'}
+                    <td className="border-b border-slate-100 px-5 py-4 text-slate-700">
+                      <span className="block truncate">
+                        {primaryRole ? roleLabels[primaryRole] : 'Unassigned'}
+                      </span>
                     </td>
-                    <td className="border-b border-slate-100 px-4 py-3 text-slate-700">
-                      {user.email ?? 'No email'}
+                    <td className="border-b border-slate-100 px-5 py-4 text-slate-700">
+                      <span className="block truncate">{user.email ?? 'No email'}</span>
                     </td>
-                    <td className="border-b border-slate-100 px-4 py-3">
+                    <td className="border-b border-slate-100 px-5 py-4">
                       <div className="flex flex-wrap gap-1">
                         {roles.length === 0 ? <Badge>No role</Badge> : null}
                         {roles.map((roleCode) => (
@@ -447,8 +457,8 @@ export function StaffAdministrationPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="border-b border-slate-100 px-4 py-3">
-                      <div className="flex items-center gap-3">
+                    <td className="border-b border-slate-100 px-5 py-4">
+                      <div className="flex items-center justify-end gap-3">
                         <button
                           aria-label={`Edit roles for ${getUserDisplayName(user)}`}
                           className="text-teal-700 transition hover:text-teal-900"
@@ -473,7 +483,7 @@ export function StaffAdministrationPage() {
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 px-4 py-4 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
           <p>
             Showing {tableRangeStart} to {tableRangeEnd} of {totalCount} entries
           </p>
