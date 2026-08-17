@@ -79,7 +79,7 @@ export function AppShell() {
                       'flex min-h-10 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition',
                       isActive
                         ? 'bg-white text-slate-950'
-                        : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                        : 'text-slate-100 hover:bg-slate-800 hover:text-white',
                     )
                   }
                   end={item.href === '/applicant' || item.href === '/staff'}
